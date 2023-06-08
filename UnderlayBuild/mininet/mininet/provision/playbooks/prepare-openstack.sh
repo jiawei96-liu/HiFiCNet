@@ -88,16 +88,3 @@ elif [[ $role == "worker" ]];then
     ip link set up intf14
 fi
 
-0. 先使用prepare-docker-net.sh做好Distrinet搭建的网络环境
-1. 修改Distrinet代码，起Distrinet拓扑，test_distrinet
-2. 起RYU，pingall测试
-3. 运行prepare-openstack脚本，将网络拉通，执行顺序，先controller，再master，再worker，做完进行连通性测试，
-4. 看能否从controller节点ping到容器内的ip，如果测试不通过，复制粘贴再执行一遍，确保通过连通性测试。
-5. 起容器中的openstack服务，进入到容器中，修改 /root/docker_configer_container_cmd.py，
-    route add default gw 192.168.1.1 
-    echo "10.10.0.11  controller" >> /etc/hosts 这一行
-6. 执行该脚本，python3 docker_configer_container_cmd.py
-7. controller root下执行su -s /bin/sh -c "nova-manage cell_v2 discover_hosts --verbose" nova，进行compute node的发现操作
-8. 切换到sdn账号，执行 openstack hypervisor list，可以看到新增的节点
-9. 进行L3的测试，可以参考 openstack-create.sh脚本
-
