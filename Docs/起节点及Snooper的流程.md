@@ -124,4 +124,159 @@
     +----+---------------------+-----------------+------------+-------+
     ```
 
-### 将vhost启动为controller的计算节点
+### openstack 起节点
+
+1. 运行 ./openstack-create.sh init，起两个subnet及外部provider网络
+2. 运行 ./openstack-create.sh router，起subunet间的router及添加路由规则
+3. 运行 ./openstack-create.sh 8 4，起8个VM(namespace)，位于4个vhost上(docker)
+4. ./openstack-clean.sh脚本为对应的相反操作，自己根据需要研究
+
+* 注意：路由器成功创建应该有对应的qrouter namespace起来，脚本执行的时候，有可能会起不来，注意检查。由于nova的调度，router起的位置是不确定的，推荐先起一个compute node节点，起成功router之后，增量起compute node节点
+    ```
+    root@h3:/# ip netns ls
+    fake-98ac9326-543e-47c8-bfae-6e5d8ddd899d (id: 4)
+    qdhcp-28202ede-1b30-4b9d-b88f-50c53b29ea80 (id: 1)
+    qrouter-d35a4f17-4aab-4083-98c9-19e179bea5ce (id: 2)
+    fake-833f68ee-958e-4e39-909a-fe1c30d2ec04 (id: 3)
+    root@h3:/#
+
+    ```
+### L3测试
+
+1. controller节点添加对应的namespace subnet的路由表，可以做到controller节点ping到所有的namespace
+   ```
+    root@controller:/home/sdn# route add -net 1.0.0.0/8 gw 20.20.0.251
+    root@controller:/home/sdn# route add -net 2.0.0.0/8 gw 20.20.0.253
+    root@controller:/home/sdn# route -n
+    Kernel IP routing table
+    Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+    0.0.0.0         172.16.41.254   0.0.0.0         UG    101    0        0 enp1s0f1
+    1.0.0.0         20.20.0.251     255.0.0.0       UG    0      0        0 enp1s0f0
+    2.0.0.0         20.20.0.253     255.0.0.0       UG    0      0        0 enp1s0f0
+    10.10.0.0       0.0.0.0         255.255.255.0   U     102    0        0 enp3s0
+    10.10.0.0       10.10.0.1       255.255.255.0   UG    102    0        0 enp3s0
+    20.20.0.0       0.0.0.0         255.255.255.0   U     100    0        0 enp1s0f0
+    20.20.0.0       20.20.0.1       255.255.255.0   UG    100    0        0 enp1s0f0
+    172.16.41.0     0.0.0.0         255.255.255.0   U     101    0        0 enp1s0f1
+    192.168.0.0     0.0.0.0         255.255.0.0     U     0      0        0 admin-br
+    192.168.0.0     0.0.0.0         255.255.0.0     U     0      0        0 admin
+    root@controller:/home/sdn#
+
+   ```
+
+
+2. 默认起的路由器，由于没有添加路由规则，不支持跨subnet通信，做到节点跨subnet通信可以通过以下操作，添加路由规则
+    ```
+     sdn@controller:~$ openstack router list
+    +--------------------------------------+------------------+--------+-------+----------------------------------+-------------+-------+
+    | ID                                   | Name             | Status | State | Project                          | Distributed | HA    |
+    +--------------------------------------+------------------+--------+-------+----------------------------------+-------------+-------+
+    | 011943b6-84c2-445a-a608-728ed9ab6f4e | router-ext-self2 | ACTIVE | UP    | 59cb087f79154ab3b6d6015422630491 | False       | False |
+    | d35a4f17-4aab-4083-98c9-19e179bea5ce | router-ext-self1 | ACTIVE | UP    | 59cb087f79154ab3b6d6015422630491 | False       | False |
+    +--------------------------------------+------------------+--------+-------+----------------------------------+-------------+-------+
+    sdn@controller:~$ openstack router show router-ext-self1
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                   | Value                                                                                                                                                                                   |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | admin_state_up          | UP                                                                                                                                                                                      |
+    | availability_zone_hints |                                                                                                                                                                                         |
+    | availability_zones      | nova                                                                                                                                                                                    |
+    | created_at              | 2023-06-08T13:12:14Z                                                                                                                                                                    |
+    | description             |                                                                                                                                                                                         |
+    | distributed             | False                                                                                                                                                                                   |
+    | external_gateway_info   | {"network_id": "b01e47bd-ec80-4ec7-8bc2-b028717f5971", "external_fixed_ips": [{"subnet_id": "5447485b-ccd2-4d76-ba4c-4bfca1df2221", "ip_address": "20.20.0.251"}], "enable_snat": true} |
+    | flavor_id               | None                                                                                                                                                                                    |
+    | ha                      | False                                                                                                                                                                                   |
+    | id                      | d35a4f17-4aab-4083-98c9-19e179bea5ce                                                                                                                                                    |
+    | interfaces_info         | [{"port_id": "f0d3b3b5-2125-4dfb-a3a9-4512f66c4436", "ip_address": "1.0.0.1", "subnet_id": "13ce93b0-ced4-4a6c-8ced-b2d68982913a"}]                                                     |
+    | name                    | router-ext-self1                                                                                                                                                                        |
+    | project_id              | 59cb087f79154ab3b6d6015422630491                                                                                                                                                        |
+    | revision_number         | 4                                                                                                                                                                                       |
+    | routes                  |                                                                                                                                                                                         |
+    | status                  | ACTIVE                                                                                                                                                                                  |
+    | tags                    |                                                                                                                                                                                         |
+    | updated_at              | 2023-06-08T13:12:25Z                                                                                                                                                                    |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    sdn@controller:~$ openstack router show router-ext-self2
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                   | Value                                                                                                                                                                                   |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | admin_state_up          | UP                                                                                                                                                                                      |
+    | availability_zone_hints |                                                                                                                                                                                         |
+    | availability_zones      | nova                                                                                                                                                                                    |
+    | created_at              | 2023-06-08T13:35:52Z                                                                                                                                                                    |
+    | description             |                                                                                                                                                                                         |
+    | distributed             | False                                                                                                                                                                                   |
+    | external_gateway_info   | {"network_id": "b01e47bd-ec80-4ec7-8bc2-b028717f5971", "external_fixed_ips": [{"subnet_id": "5447485b-ccd2-4d76-ba4c-4bfca1df2221", "ip_address": "20.20.0.253"}], "enable_snat": true} |
+    | flavor_id               | None                                                                                                                                                                                    |
+    | ha                      | False                                                                                                                                                                                   |
+    | id                      | 011943b6-84c2-445a-a608-728ed9ab6f4e                                                                                                                                                    |
+    | interfaces_info         | [{"port_id": "9dd3874a-5ab5-40c0-8277-00a1baa57388", "ip_address": "2.0.0.1", "subnet_id": "9099becc-f8c1-4d39-8ccb-e07c36ebf52f"}]                                                     |
+    | name                    | router-ext-self2                                                                                                                                                                        |
+    | project_id              | 59cb087f79154ab3b6d6015422630491                                                                                                                                                        |
+    | revision_number         | 5                                                                                                                                                                                       |
+    | routes                  |                                                                                                                                                                                         |
+    | status                  | ACTIVE                                                                                                                                                                                  |
+    | tags                    |                                                                                                                                                                                         |
+    | updated_at              | 2023-06-08T13:41:59Z                                                                                                                                                                    |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+
+
+    sdn@controller:~$ openstack subnet list
+    +--------------------------------------+--------------+--------------------------------------+--------------+
+    | ID                                   | Name         | Network                              | Subnet       |
+    +--------------------------------------+--------------+--------------------------------------+--------------+
+    | 13ce93b0-ced4-4a6c-8ced-b2d68982913a | self1-subnet | ed829ed1-ec5e-49bd-9477-e01b9fc4cc9d | 1.0.0.0/8    |
+    | 5447485b-ccd2-4d76-ba4c-4bfca1df2221 | ext-subnet   | b01e47bd-ec80-4ec7-8bc2-b028717f5971 | 20.20.0.0/16 |
+    | 9099becc-f8c1-4d39-8ccb-e07c36ebf52f | self2-subnet | 28202ede-1b30-4b9d-b88f-50c53b29ea80 | 2.0.0.0/8    |
+    +--------------------------------------+--------------+--------------------------------------+--------------+
+    sdn@controller:~$ openstack router add route --route destination=1.0.0.0/8,gateway=20.20.0.251 router-ext-self2
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                   | Value                                                                                                                                                                                   |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | admin_state_up          | UP                                                                                                                                                                                      |
+    | availability_zone_hints |                                                                                                                                                                                         |
+    | availability_zones      | nova                                                                                                                                                                                    |
+    | created_at              | 2023-06-08T13:35:52Z                                                                                                                                                                    |
+    | description             |                                                                                                                                                                                         |
+    | distributed             | False                                                                                                                                                                                   |
+    | external_gateway_info   | {"network_id": "b01e47bd-ec80-4ec7-8bc2-b028717f5971", "external_fixed_ips": [{"subnet_id": "5447485b-ccd2-4d76-ba4c-4bfca1df2221", "ip_address": "20.20.0.253"}], "enable_snat": true} |
+    | flavor_id               | None                                                                                                                                                                                    |
+    | ha                      | False                                                                                                                                                                                   |
+    | id                      | 011943b6-84c2-445a-a608-728ed9ab6f4e                                                                                                                                                    |
+    | name                    | router-ext-self2                                                                                                                                                                        |
+    | project_id              | 59cb087f79154ab3b6d6015422630491                                                                                                                                                        |
+    | revision_number         | 6                                                                                                                                                                                       |
+    | routes                  | destination='1.0.0.0/8', gateway='20.20.0.251'                                                                                                                                          |
+    | status                  | ACTIVE                                                                                                                                                                                  |
+    | tags                    |                                                                                                                                                                                         |
+    | updated_at              | 2023-06-08T13:50:51Z                                                                                                                                                                    |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    sdn@controller:~$ openstack router add route --route destination=2.0.0.0/8,gateway=20.20.0.253 router-ext-self1
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | Field                   | Value                                                                                                                                                                                   |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | admin_state_up          | UP                                                                                                                                                                                      |
+    | availability_zone_hints |                                                                                                                                                                                         |
+    | availability_zones      | nova                                                                                                                                                                                    |
+    | created_at              | 2023-06-08T13:12:14Z                                                                                                                                                                    |
+    | description             |                                                                                                                                                                                         |
+    | distributed             | False                                                                                                                                                                                   |
+    | external_gateway_info   | {"network_id": "b01e47bd-ec80-4ec7-8bc2-b028717f5971", "external_fixed_ips": [{"subnet_id": "5447485b-ccd2-4d76-ba4c-4bfca1df2221", "ip_address": "20.20.0.251"}], "enable_snat": true} |
+    | flavor_id               | None                                                                                                                                                                                    |
+    | ha                      | False                                                                                                                                                                                   |
+    | id                      | d35a4f17-4aab-4083-98c9-19e179bea5ce                                                                                                                                                    |
+    | name                    | router-ext-self1                                                                                                                                                                        |
+    | project_id              | 59cb087f79154ab3b6d6015422630491                                                                                                                                                        |
+    | revision_number         | 5                                                                                                                                                                                       |
+    | routes                  | destination='2.0.0.0/8', gateway='20.20.0.253'                                                                                                                                          |
+    | status                  | ACTIVE                                                                                                                                                                                  |
+    | tags                    |                                                                                                                                                                                         |
+    | updated_at              | 2023-06-08T13:51:06Z                                                                                                                                                                    |
+    +-------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    sdn@controller:~$                                                                                                                                                           
+
+    ```
+
+
