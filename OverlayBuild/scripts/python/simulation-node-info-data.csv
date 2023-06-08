@@ -1,0 +1,9 @@
+ID,Name,Status,Networks,Image,Flavor,Host
+40f8d7ba-d9c6-47e2-b0e9-aeafe01b4223,vm8,ACTIVE,self1-network=1.0.0.71,cirros,m1.nano,h3
+164bfab5-9ca3-4c5f-9300-570e67b65298,vm7,ACTIVE,self1-network=1.0.2.32,cirros,m1.nano,h2
+57f20f31-c8e9-4f68-a03f-af10424f943e,vm6,ACTIVE,self1-network=1.0.0.243,cirros,m1.nano,h4
+ecbe85fc-8549-4205-92f6-e4bffb9b21d8,vm5,ACTIVE,self1-network=1.0.1.192,cirros,m1.nano,h2
+5eaff804-b5a3-4481-853a-c3b03695cba8,vm4,ACTIVE,self1-network=1.0.1.239,cirros,m1.nano,h4
+3d33fcb5-4fe9-4fd1-82a5-cfe3eeb1ec32,vm3,ACTIVE,self1-network=1.0.2.106,cirros,m1.nano,h3
+37a4f338-0e48-456f-8789-a0a1d6fba86b,vm2,ACTIVE,self1-network=1.0.3.75,cirros,m1.nano,h2
+34e19176-8cb5-42e0-b6e3-155521f3ba2a,vm1,ACTIVE,self1-network=1.0.1.185,cirros,m1.nano,h4
