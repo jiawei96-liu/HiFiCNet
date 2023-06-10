@@ -43,7 +43,7 @@
 
 ### 构建Controller与Underlay网络的连接
 
-1. Controller、Master节点运行
+1. Controller、Master节点运行 prepare-openstack.sh
     ```
     sdn@controller:~/HiFiCNet/OverlayBuild/scripts/shell$ pwd
     /home/sdn/HiFiCNet/OverlayBuild/scripts/shell
@@ -280,3 +280,84 @@
     ```
 
 
+### snooper
+
+1. 我们使用ovs的gre+镜像端口实现br-int处的包采集
+   * 被监听端
+   ```
+   root@h2:~# ovs-vsctl add-port br-tun lgre0 -- set interface lgre0 type=gre options:remote_ip=20.20.0.6 options:key=0x0010
+   
+   root@h2:~# ovs-vsctl -- set Bridge br-tun mirrors=@m -- --id=@lgre0 get Port lgre0 -- --id=@patch-int get Port patch-int -- --id=@m create Mirror name=mymirror select-dst-port=@patch-int select-src-port=@patch-int output-port=@lgre0 select_all=1
+    
+    root@h2:~# ovs-vsctl list mirror
+    _uuid               : 478ce26f-492a-41a3-9239-af86cc791925
+    external_ids        : {}
+    name                : mymirror
+    output_port         : 9eb6de72-bea8-4608-b5df-7cc5692b0f47
+    output_vlan         : []
+    select_all          : true
+    select_dst_port     : [f5cc3e6b-d1d7-418b-a2d1-91bd26ba8270]
+    select_src_port     : [f5cc3e6b-d1d7-418b-a2d1-91bd26ba8270]
+    select_vlan         : []
+    snaplen             : []
+    statistics          : {tx_bytes=0, tx_packets=0}
+    root@h2:~#
+
+   ```
+   * 监听端
+    ```
+    root@h3:~#  ovs-vsctl add-port mtest rgre1 -- set interface rgre1 type=gre options:remote_ip=20.20.0.5 options:key=0x0010
+    ```
+2. 测试
+   * 被监听端
+    ```
+    root@h2:~# ip netns ls
+    qrouter-0012a783-9b08-476b-9176-ffbe4542aa77 (id: 3)
+    fake-085d364c-5fcf-4bda-b8b4-86e27741e929 (id: 2)
+    fake-02f65dca-2f54-4024-99d2-25b579209fb7 (id: 1)
+    root@h2:~# ip netns exec fake-085d364c-5fcf-4bda-b8b4-86e27741e929 ip a
+    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+        inet 127.0.0.1/8 scope host lo
+        valid_lft forever preferred_lft forever
+        inet6 ::1/128 scope host
+        valid_lft forever preferred_lft forever
+    2: gre0@NONE: <NOARP> mtu 1476 qdisc noop state DOWN group default qlen 1000
+        link/gre 0.0.0.0 brd 0.0.0.0
+    3: gretap0@NONE: <BROADCAST,MULTICAST> mtu 1462 qdisc noop state DOWN group default qlen 1000
+        link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+    4: erspan0@NONE: <BROADCAST,MULTICAST> mtu 1450 qdisc noop state DOWN group default qlen 1000
+        link/ether 00:00:00:00:00:00 brd ff:ff:ff:ff:ff:ff
+    12: tap86702331-4d: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default qlen 1000
+        link/ether fa:16:3e:2f:89:ef brd ff:ff:ff:ff:ff:ff
+        inet 2.0.3.79/8 scope global tap86702331-4d
+        valid_lft forever preferred_lft forever
+        inet6 fe80::503a:d4ff:fea5:7b39/64 scope link
+        valid_lft forever preferred_lft forever
+    root@h2:~#   
+    ```
+
+    从别的容器ping被监听端的namespace里面的ip，流量通过br-int，copy一份到gre镜像端口
+    ```
+    root@h1:~# ip netns ls
+    fake-6df0bdec-6c90-4251-83f7-ec50c0050ea8 (id: 5)
+    qdhcp-acb4f9f8-644e-45d6-beee-f7bd7f0fb809 (id: 1)
+    fake-0f921542-37ce-469f-bf85-f850dc6c770f (id: 7)
+    qrouter-ac862d9e-7825-4e0a-a8f6-c645a11fab4f (id: 4)
+    qdhcp-1396c34c-e215-4364-a69a-3b84ad548fe2 (id: 2)
+    qdhcp-d438f743-e78f-4aa4-8119-0d09eefd4699 (id: 3)
+    fake-a8e3b9aa-41b0-40cd-a227-f2de5e201221 (id: 6)
+    root@h1:~# ip netns exec fake-0f921542-37ce-469f-bf85-f850dc6c770f ping 2.0.3.79
+    PING 2.0.3.79 (2.0.3.79) 56(84) bytes of data.
+    64 bytes from 2.0.3.79: icmp_seq=1 ttl=62 time=5.67 ms
+    64 bytes from 2.0.3.79: icmp_seq=2 ttl=62 time=2.44 ms
+    ```
+   * 监听端
+    ```
+    root@h3:~# tcpdump -ieth0 -nn -e proto gre
+    tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+    listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+    22:55:40.820711 f6:0e:58:9f:17:46 > 02:42:14:14:00:06, ethertype IPv4 (0x0800), length 140: 20.20.0.4 > 20.20.0.6: GREv0, key=0x10, proto TEB (0x6558), length 106: fa:16:3e:31:81:df > fa:16:3e:54:35:39, ethertype IPv4 (0x0800), length 98: 1.0.2.60 > 2.0.3.79: ICMP echo request, id 3984, seq 60, length 64
+    22:55:40.820748 02:42:14:14:00:06 > f6:0e:58:9f:17:46, ethertype IPv4 (0x0800), length 140: 20.20.0.6 > 20.20.0.5: GREv0, key=0x10, proto TEB (0x6558), length 106: fa:16:3e:31:81:df > fa:16:3e:54:35:39, ethertype IPv4 (0x0800), length 98: 1.0.2.60 > 2.0.3.79: ICMP echo request, id 3984, seq 60, length 64
+    22:55:40.821230 f6:0e:58:9f:17:46 > 02:42:14:14:00:06, ethertype IPv4 (0x0800), length 140: 20.20.0.5 > 20.20.0.6: GREv0, key=0x10, proto TEB (0x6558), length 106: fa:16:3e:31:81:df > fa:16:3e:54:35:39, ethertype IPv4 (0x0800), length 98: 1.0.2.60 > 2.0.3.79: ICMP echo request, id 3984, seq 60, length 64
+    ```
