@@ -16,7 +16,6 @@ root@worker1:/home/sdn# ip link set veth-h4-bs netns 255065
 root@worker1:/home/sdn#
 root@worker1:/home/sdn# docker exec -it h4 bash
 ```
-adfasdfas
 
 ```
 root@h4:/# ip a
