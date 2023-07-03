@@ -61,19 +61,21 @@ elif [[ $role == "master" ]];then
     fi
     sleep 5
 
-    brctl addbr data-br &&\
-    ifconfig data-br 10.10.0.2/16 &&\
-    ip addr flush enp3s0 &&\
-    brctl addif data-br enp3s0 &&\
-    tunctl -t data  &&\
-    brctl addif data-br data &&\
-    ifconfig data 10.10.0.16/16 &&\
-    ip link set data-br up &&\
-    ip link set data up &&\
-    ip link add vx_01 type vxlan id 01 remote 172.16.41.14 local 172.16.41.16 dstport 4788 &&\
-    ip link set up vx_01 &&\
-    brctl addif data-br vx_01 &&\
-    ip link set up data-br
+
+    brctl addif intf14 eno4
+    # brctl addbr data-br &&\
+    # ifconfig data-br 10.10.0.2/16 &&\
+    # ip addr flush enp3s0 &&\
+    # brctl addif data-br enp3s0 &&\
+    # tunctl -t data  &&\
+    # brctl addif data-br data &&\
+    # ifconfig data 10.10.0.16/16 &&\
+    # ip link set data-br up &&\
+    # ip link set data up &&\
+    # ip link add vx_01 type vxlan id 01 remote 172.16.41.14 local 172.16.41.16 dstport 4788 &&\
+    # ip link set up vx_01 &&\
+    # brctl addif data-br vx_01 &&\
+    # ip link set up data-br
 
 elif [[ $role == "worker" ]];then
     flag=`ifconfig | grep vx_01 | wc -l`
