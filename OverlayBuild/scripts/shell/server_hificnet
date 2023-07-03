@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /root/HiFiCNet/UnderlayBuild/mininet
+export PYTHONPATH=mininet:$PYTHONPATH:
+python3 bin/hmn --workers="172.16.50.6,172.16.50.3,172.16.50.4" --controller=remote,ip=192.168.1.1 --topo=linear,2
+#python3 bin/hmn --workers="172.16.50.6,172.16.50.3,172.16.50.4" --controller=remote,ip=192.168.1.1 --custom=custom/fat-tree.py --topo=mytopo
+

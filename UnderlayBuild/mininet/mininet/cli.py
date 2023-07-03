@@ -24,7 +24,7 @@ list all nodes ('nodes'), to print out the network topology
 ('net') and to check connectivity ('pingall', 'pingpair')
 and bandwidth ('iperf'.)
 """
-
+import datetime
 from subprocess import call
 from cmd import Cmd
 from os import isatty
@@ -46,7 +46,7 @@ class CLI( Cmd ):
 
     prompt = 'mininet> '
 
-    def __init__( self, mininet, stdin=sys.stdin, script=None ):
+    def __init__( self, mininet, stdin=sys.stdin, script=None, intime=0):
         """Start and run interactive or batch mode CLI
            mininet: Mininet network object
            stdin: standard input for CLI
@@ -61,7 +61,10 @@ class CLI( Cmd ):
         self.inputFile = script
         Cmd.__init__( self )
         info( '*** Starting CLI:\n' )
-
+        endtime = datetime.datetime.now()
+        print('Start time: \t', intime)
+        print('End time: \t', endtime)
+        print('Total time spent: \t', endtime - intime)
         if self.inputFile:
             self.do_source( self.inputFile )
             return

@@ -1,0 +1,6 @@
+#!/bin/bash
+cd /root/HiFiCNet/UnderlayBuild/mininet
+#cd /root/Hificnet/mininet
+export PYTHONPATH=mininet:$PYTHONPATH:
+#python3 bin/hmn --workers="172.16.50.6,172.16.50.3,172.16.50.4,172.16.50.6" --controller=lxcremote,ip=192.168.1.1 --topo=linear,7
+python3 bin/hmn --workers="172.16.41.16,172.16.41.14,172.16.41.15" --controller=lxcremote,ip=192.168.1.1 --topo=linear,5

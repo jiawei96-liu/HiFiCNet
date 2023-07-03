@@ -137,7 +137,9 @@ class Intf( object ):
             cmdOutput = self.ifconfig( 'up' )
             # no output indicates success
             if cmdOutput:
-                error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
+                # error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
+                #-----------------------------------------------------------------------------
+                # error( "*** Info: setting %s up: %s " % ( self.name, cmdOutput ) )
                 return False
             else:
                 return True
@@ -382,14 +384,16 @@ class TCIntf( Intf ):
                   ( ['%.5f%% loss' % loss ] if loss is not None else [] ) +
                   ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else [] ) )
-        info( '(' + ' '.join( stuff ) + ') ' )
+        #---------------------------------------------------------
+        # info( '(' + ' '.join( stuff ) + ') \n' )
 
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
-        for output in tcoutputs:
-            if output != '':
-                error( "*** Error: %s" % output )
+        # for output in tcoutputs:
+        #     if output != '':
+                #-----------------------------------------------------------------------------
+                #error( "*** info: %s" % output )
         debug( "cmds:", cmds, '\n' )
         debug( "outputs:", tcoutputs, '\n' )
         result[ 'tcoutputs'] = tcoutputs

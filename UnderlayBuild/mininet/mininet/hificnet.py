@@ -85,6 +85,8 @@ After all desired tests or activities have been completed, the stop()
 method may be called to shut down the network.
 
 """
+import warnings
+warnings.filterwarnings("ignore")
 
 import os
 import re
@@ -472,14 +474,15 @@ class Hificnet( Mininet ):
         self.adminNextIP += 1
         self.host.createMasterAdminNetwork(self.masterSsh, brname="admin-br", ip=_ip)
         self.connectedToAdminNetwork.add(self.masterhost)
-        info (" admin network created on {}\n".format(self.masterhost))
+        info ("admin network created on {}\n".format(self.masterhost))
 
 
         assert (isinstance(self.controllers, list))
 
         if not self.controllers and self.controller:
             # Add a default controller
-            info( '*** Adding controller\n' )
+            #-------------------------------------------------
+            # info( '*** Adding controller\n' )
             classes = self.controller
             if not isinstance( classes, list ):
                 classes = [ classes ]
@@ -492,8 +495,8 @@ class Hificnet( Mininet ):
 
 #        from assh import ASsh
         # prepare SSH connection to the master
-
-        info( '*** Adding hosts:\n' )
+        #-------------------------------------------------
+        # info( '*** Adding hosts:\n' )
 
         # == Hosts ===========================================================
         for hostName in topo.hosts():
@@ -509,9 +512,10 @@ class Hificnet( Mininet ):
                     client_keys=self.client_keys,
                     waitStart=waitStart,
                     **topo.nodeInfo( hostName ))
-            info( hostName + ' ' )
-
-        info( '\n*** Adding switches:\n' )
+            #-------------------------------------------------
+            # info( hostName + ' ' )
+        #-------------------------------------------------
+        # info( '\n*** Adding switches:\n' )
         for switchName in topo.switches():
             '''_ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
             self.adminNextIP += 1'''
@@ -553,7 +557,8 @@ class Hificnet( Mininet ):
             for node in nodes:
                 node.waitCreated()
                 _info ("createdContainer {} ".format(node.name))
-            info ("nodes created\n")
+            #-------------------------------------------------
+            # info ("nodes created\n")
             
             cmds = []
             for node in nodes:
@@ -569,7 +574,8 @@ class Hificnet( Mininet ):
 
             count=0
             for node in nodes:
-                info ("create admin interface {} ".format( node.name))
+                #---------------------------------------------------------
+                # info ("create admin interface {} \n".format( node.name))
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
                 count+=1
                 if count>100:
@@ -578,8 +584,8 @@ class Hificnet( Mininet ):
 
             for node in nodes:
                 node.targetSshWaitOutput()
-                info ("admin interface created on {} ".format( node.name))
-            info ("\n")
+                #---------------------------------------------------------
+                # info ("admin interface created on {} \n".format( node.name))
 
             count=0
             for node in nodes:
@@ -597,18 +603,20 @@ class Hificnet( Mininet ):
                 node.targetSshWaitOutput()
 
             for node in nodes:
-                info ("connecting {} ".format( node.name))
+                # info ("connecting {} \n".format( node.name))
                 node.connect()
             for node in nodes:
                 node.waitConnected()
-                info ("connected {} ".format( node.name))
+                #---------------------------------------------------------
+                # info ("connected \t{} \n".format( node.name))
             '''info ("starting nova compute") 
             for host in self.hosts:
                 host.startNovacompute()
             info ("started nova compute")'''
             count=0
             for node in nodes:
-                info ("startshell {} ".format( node.name) )
+                #---------------------------------------------------------
+                # info ("startshell \t{} \n".format( node.name) )
                 node.asyncStartShell()
                 count+=1
                 if count>100:
@@ -616,24 +624,26 @@ class Hificnet( Mininet ):
                     count=0
             for node in nodes:
                 node.waitStarted()
-                info ("startedshell {}".format( node.name))
+                #---------------------------------------------------------
+                # info ("startedshell \t{} \n".format( node.name))
                                         
             count=0
             for node in nodes:
-                info ("finalize {}".format( node.name))
+                #---------------------------------------------------------
+                # info ("finalize \t{} \n".format( node.name))
                 node.finalizeStartShell()
                 count+=1
                 if count>100:
                     sleep(10)
                     count=0
-            info ("\n")
-
-        info( '\n*** Adding links:\n' )
+        #---------------------------------------------------------
+        # info( '*** Adding links:\n' )
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True ):
             self.addLink( **params )
-            info( '(%s, %s) ' % ( srcName, dstName ) )
-        info( '\n' )
+            #---------------------------------------------------------
+            # info( '(%s, %s) ' % ( srcName, dstName ) )
+        # info( '\n' )
 
     def configureControlNetwork( self ):
         "Control net config hook: override in subclass"
@@ -646,7 +656,8 @@ class Hificnet( Mininet ):
             self.buildFromTopo( self.topo )
 
 ##            self.configureControlNetwork()
-        info( '*** Configuring hosts\n' )
+#---------------------------------------------------------
+        # info( '*** Configuring hosts\n' )
         self.configHosts()
 ##        if self.xterms:
 ##            self.startTerms()
@@ -683,14 +694,18 @@ class Hificnet( Mininet ):
         "Start controller and switches."
         if not self.built:
             self.build()
-        info( '*** Starting controller\n' )
+        #---------------------------------------------------------
+        # info( '*** Starting controller\n' )
         for controller in self.controllers:
-            info( controller.name + ' ')
+            #---------------------------------------------------------
+            # info( controller.name + ' ')
             controller.start()
-        info( '\n' )
-        info( '*** Starting %s switches\n' % len( self.switches ) )
+        #---------------------------------------------------------
+        # info( '\n' )
+        # info( '*** Starting %s switches\n' % len( self.switches ) )
         for switch in self.switches:
-            info( switch.name + ' ')
+            #---------------------------------------------------------
+            # info( switch.name + ' ')
             switch.start( self.controllers )
         started = {}
         for switch in self.switches:
@@ -703,7 +718,8 @@ class Hificnet( Mininet ):
 #            if hasattr( swclass, 'batchStartup' ):
 #                success = swclass.batchStartup( switches )
 #                started.update( { s: s for s in success } )
-        info( '\n' )
+        #---------------------------------------------------------
+        # info( '\n' )
         if self.waitConn:
             self.waitConnected()
 

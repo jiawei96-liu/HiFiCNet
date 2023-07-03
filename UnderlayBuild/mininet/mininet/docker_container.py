@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import os
 import pty
 import re
@@ -219,7 +222,7 @@ class DockerNode (Node):
             self.targetSsh.sendCmd(cmd)
 
     @classmethod
-    def createMasterAdminNetwork(cls, master, brname="admin-br", ip="172.16.41.105/24", **params):
+    def createMasterAdminNetwork(cls, master, brname="admin-br", ip="172.16.50.6/24", **params):
         cmds = []
         cmds.append("brctl addbr {}".format(brname))
         cmds.append("ifconfig {} {}".format(brname, ip))
@@ -341,7 +344,7 @@ class DockerNode (Node):
     def waitConnectedTarget(self):
         self.targetSsh.waitConnected()
 
-    def createContainer(self,autoSetDocker=False,providerIP=None,**params): 
+    def createContainer(self,providerIP=None,**params): 
 ################################################################################        time.sleep(1.0)
         info ("create container ({} {} {}) ".format(self.image, self.cpu, self.memory))
         cmds = []
@@ -349,8 +352,10 @@ class DockerNode (Node):
         # initialise the container
         if self.image=="ubuntu":
             ##--privileged=true --init --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE jiawei96liu/cnimage:v3 bash
-            #cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network20 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
-            cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
+            if providerIP:
+                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network20 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
+            else:
+                cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         else:
             cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         
