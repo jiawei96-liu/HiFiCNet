@@ -35,6 +35,7 @@ import sys
 import time
 import os
 import atexit
+import csv
 
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
@@ -44,7 +45,7 @@ from mininet.util import ( quietRun, dumpNodeConnections,
 class CLI( Cmd ):
     "Simple command-line interface to talk to nodes."
 
-    prompt = 'mininet> '
+    prompt = 'hificnet> '
 
     def __init__( self, mininet, stdin=sys.stdin, script=None, intime=0):
         """Start and run interactive or batch mode CLI
@@ -65,6 +66,17 @@ class CLI( Cmd ):
         print('Start time: \t', intime)
         print('End time: \t', endtime)
         print('Total time spent: \t', endtime - intime)
+        self.total_time = endtime - intime
+
+        with open('/root/result.csv', 'r') as f:
+            reader = csv.reader(f)
+            data = [row for row in reader]
+        data[-1][-2] = endtime - intime
+        with open('/root/result.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
+
+
         if self.inputFile:
             self.do_source( self.inputFile )
             return

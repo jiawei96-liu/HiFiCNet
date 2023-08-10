@@ -48,7 +48,6 @@ class Cleanup( object ):
     def cleanup( cls):
         """Clean up junk which might be left over from old runs;
            do fast stuff before slow dp and link removal!"""
-
         info( "*** Removing excess controllers/ofprotocols/ofdatapaths/"
               "pings/noxes\n" )
         zombies = ( 'controller ofprotocol ofdatapath ping nox_core'

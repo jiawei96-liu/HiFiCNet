@@ -40,7 +40,11 @@ class MyTopo(Topo):
 
         # # S setting
         # S = K//2
-
+        
+        
+        # n*(n-1)=50000约等于223
+        # n*(n-1+1+10+100)=50000约等于175
+        S = 2
 
         # Marking the number of switch for per level
         # pod = K
@@ -48,9 +52,11 @@ class MyTopo(Topo):
         # L2 = pod*pod//2
         # L3 = L2
 
-        L1 = 10
-        L2 = 100
-        L3 = 400
+
+        L1 = 1
+
+        L2 = 10
+        L3 = 100
 
 
         # Starting create the switch
@@ -76,15 +82,13 @@ class MyTopo(Topo):
         # first the L1 level and L2 level link
         for i in range(L1):
             c_sw = c[i]
-            start = i % (pod//2)
-            for j in range(pod):
-                self.addLink(c_sw, a[start+j*(pod//2)])
+            for j in range(L2):
+                self.addLink(c_sw, a[j])
 
         # second the L2 level and L3 level link
         for i in range(L2):
-            group = i//(pod//2)
-            for j in range(pod//2):
-                self.addLink(a[i], e[group*(pod//2)+j])
+            for j in range(L3):
+                self.addLink(a[i], e[j])
 
         # Starting create the host and create link between switchs and hosts
         for i in range(L3):

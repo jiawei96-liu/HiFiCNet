@@ -134,14 +134,22 @@ VERSION = "2.0 (Mininet {})".format(MININET_VERSION)
 
 from mininet.net import Mininet
 
+# 实现并行
+from concurrent.futures import ThreadPoolExecutor
+
+# 用csv存储实验数据
+import csv
+
+import datetime
+
 
 class Hificnet( Mininet ):
     "Network emulation with hosts spawned in network namespaces."
     def __init__( self, topo=None, switch=LxcSwitch, host=DockerNode,
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
-                  build=True, xterms=False, cleanup=False, ipBase='10.10.0.1/16',
-                  adminIpBase='192.168.1.1/16',providerIpBase='20.20.0.1/16',
+                  build=True, xterms=False, cleanup=False, ipBase='10.10.0.10/16',
+                  adminIpBase='192.168.1.1/16',providerIpBase='20.20.0.10/16',
                   autoSetMacs=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
@@ -168,6 +176,19 @@ class Hificnet( Mininet ):
            waitConnectionTimeout: timeout to wait to decide if a switch is connected to its controller
            jump: SSH jump host
            master: master node"""
+
+
+        self.csv_name = '/root/result.csv'
+        self.core_switch = 1
+        self.aggregate_switch = 10
+        self.edge_switch = 50
+        self.host_num = 100
+        # self.init_time = None
+        self.node_create_time = None
+        self.link_create_time = None
+        self.total_time = None
+        self.clear_time = None
+
         self.topo = topo
         self.switch = switch
         self.host = host
@@ -251,6 +272,45 @@ class Hificnet( Mininet ):
         self.built = False
         if topo and build:
             self.build()
+
+
+        
+
+    def init_csv(self):
+        old_data = []
+        with open(self.csv_name, 'r') as f:
+            reader = csv.reader(f)
+            for i in reader:
+                old_data.append(i)
+        if len(old_data)==0:
+            with open(self.csv_name, 'w', newline='') as f:
+                writer = csv.writer(f)
+                print('empty!!!!')
+                print(['core switch', 'aggregate switch', 'edge switch', 'host', 'node create time', 'link create time', 'total time', 'clear time'])
+                writer.writerow(['core switch', 'aggregate switch', 'edge switch', 'host', 'node create time', 'link create time', 'total time', 'clear time'])
+    
+    def write_csv(self):
+        print(self.csv_name,type(self.csv_name))
+        with open(self.csv_name, 'r') as f:
+            reader = csv.reader(f)
+            data = [row for row in reader]
+        with open(self.csv_name, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(data)
+            writer.writerow([self.core_switch, self.aggregate_switch, self.edge_switch, self.host_num, 
+            self.node_create_time, self.link_create_time, self.total_time, self.clear_time])
+            # print('enddata:', [self.core_switch, self.aggregate_switch, self.edge_switch, self.host_num, self.init_time, self.node_create_time, 
+            # self.link_create_time, self.total_time])
+            # data = []
+            # data.append(self.core_switch)
+            # data.append(self.aggregate_switch)
+            # data.append(self.edge_switch)
+            # data.append(self.host_num)
+            # data.append(self.init_time)
+            # data.append(self.node_create_time)
+            # data.append(self.link_create_time)
+            # writer.writerow(data)
+
 
     # DSA - OK
     def addHost( self, name, cls=None, **params ):
@@ -465,6 +525,8 @@ class Hificnet( Mininet ):
         # the topo
         if self.cleanup:
             pass
+        self.init_csv()
+        node_create_time_start = datetime.datetime.now()
 
         info( '*** Creating network\n' )
 
@@ -482,7 +544,7 @@ class Hificnet( Mininet ):
         if not self.controllers and self.controller:
             # Add a default controller
             #-------------------------------------------------
-            # info( '*** Adding controller\n' )
+            info( '*** Adding controller\n' )
             classes = self.controller
             if not isinstance( classes, list ):
                 classes = [ classes ]
@@ -496,7 +558,7 @@ class Hificnet( Mininet ):
 #        from assh import ASsh
         # prepare SSH connection to the master
         #-------------------------------------------------
-        # info( '*** Adding hosts:\n' )
+        info( '*** Adding hosts:\n' )
 
         # == Hosts ===========================================================
         for hostName in topo.hosts():
@@ -513,9 +575,9 @@ class Hificnet( Mininet ):
                     waitStart=waitStart,
                     **topo.nodeInfo( hostName ))
             #-------------------------------------------------
-            # info( hostName + ' ' )
+            info( hostName + ' ' )
         #-------------------------------------------------
-        # info( '\n*** Adding switches:\n' )
+        info( '\n*** Adding switches:\n' )
         for switchName in topo.switches():
             '''_ip = "{}/{}".format(ipAdd( self.adminNextIP, ipBaseNum=self.adminIpBaseNum, prefixLen=self.adminPrefixLen),self.adminPrefixLen)
             self.adminNextIP += 1'''
@@ -556,9 +618,9 @@ class Hificnet( Mininet ):
             
             for node in nodes:
                 node.waitCreated()
-                _info ("createdContainer {} ".format(node.name))
+                info ("createdContainer {} ".format(node.name))
             #-------------------------------------------------
-            # info ("nodes created\n")
+            info ("nodes created\n")
             
             cmds = []
             for node in nodes:
@@ -575,7 +637,10 @@ class Hificnet( Mininet ):
             count=0
             for node in nodes:
                 #---------------------------------------------------------
-                # info ("create admin interface {} \n".format( node.name))
+                info ("create admin interface {} \n".format( node.name))
+                #---------------------------------------------------------
+                # with ThreadPoolExecutor() as executor:
+                #     executor.submit(node.addContainerInterface, intfName="admin", brname="admin-br", wait=False)
                 node.addContainerInterface(intfName="admin", brname="admin-br", wait=False)
                 count+=1
                 if count>100:
@@ -585,7 +650,7 @@ class Hificnet( Mininet ):
             for node in nodes:
                 node.targetSshWaitOutput()
                 #---------------------------------------------------------
-                # info ("admin interface created on {} \n".format( node.name))
+                info ("admin interface created on {} \n".format( node.name))
 
             count=0
             for node in nodes:
@@ -603,12 +668,12 @@ class Hificnet( Mininet ):
                 node.targetSshWaitOutput()
 
             for node in nodes:
-                # info ("connecting {} \n".format( node.name))
+                info ("connecting {} \n".format( node.name))
                 node.connect()
             for node in nodes:
                 node.waitConnected()
                 #---------------------------------------------------------
-                # info ("connected \t{} \n".format( node.name))
+                info ("connected \t{} \n".format( node.name))
             '''info ("starting nova compute") 
             for host in self.hosts:
                 host.startNovacompute()
@@ -616,7 +681,7 @@ class Hificnet( Mininet ):
             count=0
             for node in nodes:
                 #---------------------------------------------------------
-                # info ("startshell \t{} \n".format( node.name) )
+                info ("startshell \t{} \n".format( node.name) )
                 node.asyncStartShell()
                 count+=1
                 if count>100:
@@ -625,25 +690,35 @@ class Hificnet( Mininet ):
             for node in nodes:
                 node.waitStarted()
                 #---------------------------------------------------------
-                # info ("startedshell \t{} \n".format( node.name))
+                info ("startedshell \t{} \n".format( node.name))
                                         
             count=0
             for node in nodes:
                 #---------------------------------------------------------
-                # info ("finalize \t{} \n".format( node.name))
+                info ("finalize \t{} \n".format( node.name))
                 node.finalizeStartShell()
                 count+=1
                 if count>100:
                     sleep(10)
                     count=0
+
+
+        node_create_time_end = datetime.datetime.now()
+        self.node_create_time = node_create_time_end - node_create_time_start
         #---------------------------------------------------------
-        # info( '*** Adding links:\n' )
+        link_create_time_start = datetime.datetime.now()
+        info( '*** Adding links:\n' )
+        # with ThreadPoolExecutor(max_workers=10) as executor:
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True ):
             self.addLink( **params )
-            #---------------------------------------------------------
-            # info( '(%s, %s) ' % ( srcName, dstName ) )
-        # info( '\n' )
+                # executor.submit(self.addLink, **params)
+                #---------------------------------------------------------
+            info( '(%s, %s) ' % ( srcName, dstName ) )
+        info( '\n' )
+        link_create_time_end = datetime.datetime.now()
+        self.link_create_time = link_create_time_end - link_create_time_start
+        self.write_csv()
 
     def configureControlNetwork( self ):
         "Control net config hook: override in subclass"
@@ -657,7 +732,7 @@ class Hificnet( Mininet ):
 
 ##            self.configureControlNetwork()
 #---------------------------------------------------------
-        # info( '*** Configuring hosts\n' )
+        info( '*** Configuring hosts\n' )
         self.configHosts()
 ##        if self.xterms:
 ##            self.startTerms()
@@ -692,20 +767,21 @@ class Hificnet( Mininet ):
     # DSA - OK
     def start( self ):
         "Start controller and switches."
+
         if not self.built:
             self.build()
         #---------------------------------------------------------
-        # info( '*** Starting controller\n' )
+        info( '*** Starting controller\n' )
         for controller in self.controllers:
             #---------------------------------------------------------
             # info( controller.name + ' ')
             controller.start()
         #---------------------------------------------------------
-        # info( '\n' )
-        # info( '*** Starting %s switches\n' % len( self.switches ) )
+        info( '\n' )
+        info( '*** Starting %s switches\n' % len( self.switches ) )
         for switch in self.switches:
             #---------------------------------------------------------
-            # info( switch.name + ' ')
+            info( switch.name + ' ')
             switch.start( self.controllers )
         started = {}
         for switch in self.switches:
@@ -719,7 +795,7 @@ class Hificnet( Mininet ):
 #                success = swclass.batchStartup( switches )
 #                started.update( { s: s for s in success } )
         #---------------------------------------------------------
-        # info( '\n' )
+        info( '\n' )
         if self.waitConn:
             self.waitConnected()
 

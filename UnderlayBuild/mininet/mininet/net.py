@@ -791,7 +791,7 @@ class Mininet( object ):
 
     # XXX This should be cleaned up
 
-    def iperf( self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
+    def iperf( self, hosts=None, l4Type='TCP', udpBw='100M', fmt=None,
                seconds=5, port=5001):
         """Run iperf between two hosts.
            hosts: list of hosts; if None, uses first and last hosts

@@ -240,49 +240,49 @@ class TCIntf( Intf ):
 
         cmds, parent = [], ' root '
 
-        if bw and ( bw < 0 or bw > self.bwParamMax ):
-            error( 'Bandwidth limit', bw, 'is outside supported range 0..%d'
-                   % self.bwParamMax, '- ignoring\n' )
-        elif bw is not None:
-            # BL: this seems a bit brittle...
-            if ( speedup > 0 and
-                 self.node.name[0:1] == 's' ):
-                bw = speedup
-            # This may not be correct - we should look more closely
-            # at the semantics of burst (and cburst) to make sure we
-            # are specifying the correct sizes. For now I have used
-            # the same settings we had in the mininet-hifi code.
-            if use_hfsc:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
-                          + 'rate %fMbit ul rate %fMbit' % ( bw, bw ) ]
-            elif use_tbf:
-                if latency_ms is None:
-                    latency_ms = 15.0 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
-                          ( bw, latency_ms ) ]
-            else:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
-                          'rate %fMbit burst 15k' % bw ]
-            parent = ' parent 5:1 '
+        # if bw and ( bw < 0 or bw > self.bwParamMax ):
+        #     error( 'Bandwidth limit', bw, 'is outside supported range 0..%d'
+        #            % self.bwParamMax, '- ignoring\n' )
+        # elif bw is not None:
+        #     # BL: this seems a bit brittle...
+        #     if ( speedup > 0 and
+        #          self.node.name[0:1] == 's' ):
+        #         bw = speedup
+        #     # This may not be correct - we should look more closely
+        #     # at the semantics of burst (and cburst) to make sure we
+        #     # are specifying the correct sizes. For now I have used
+        #     # the same settings we had in the mininet-hifi code.
+        #     if use_hfsc:
+        #         cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
+        #                   '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
+        #                   + 'rate %fMbit ul rate %fMbit' % ( bw, bw ) ]
+        #     elif use_tbf:
+        #         if latency_ms is None:
+        #             latency_ms = 15.0 * 8 / bw
+        #         cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
+        #                   'rate %fMbit burst 15000 latency %fms' %
+        #                   ( bw, latency_ms ) ]
+        #     else:
+        #         cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
+        #                   '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+        #                   'rate %fMbit burst 15k' % bw ]
+        #     parent = ' parent 5:1 '
 
-            # ECN or RED
-            if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1 ecn' % bw ]
-                parent = ' parent 6: '
-            elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1' % bw ]
-                parent = ' parent 6: '
+        #     # ECN or RED
+        #     if enable_ecn:
+        #         cmds += [ '%s qdisc add dev %s' + parent +
+        #                   'handle 6: red limit 1000000 ' +
+        #                   'min 30000 max 35000 avpkt 1500 ' +
+        #                   'burst 20 ' +
+        #                   'bandwidth %fmbit probability 1 ecn' % bw ]
+        #         parent = ' parent 6: '
+        #     elif enable_red:
+        #         cmds += [ '%s qdisc add dev %s' + parent +
+        #                   'handle 6: red limit 1000000 ' +
+        #                   'min 30000 max 35000 avpkt 1500 ' +
+        #                   'burst 20 ' +
+        #                   'bandwidth %fmbit probability 1' % bw ]
+        #         parent = ' parent 6: '
         return cmds, parent
 
     @staticmethod
