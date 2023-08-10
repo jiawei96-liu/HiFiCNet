@@ -1,0 +1,25 @@
+{
+    "files.associations": {
+        "router.h": "c",
+        "host.h": "c",
+        "sim_event.h": "c",
+        "array": "c",
+        "chrono": "c",
+        "compare": "c",
+        "executor": "c",
+        "internet": "c",
+        "functional": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "json_topology.h": "c",
+        "sim.h": "c",
+        "log.h": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utlist.h": "c",
+        "route_table.h": "c",
+        "dp_actions.h": "c"
+    }
+}

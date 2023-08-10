@@ -1,0 +1,28 @@
+{
+    "router":[1, 2,3,4],
+    "links": [{
+        "routerX":1,
+        "routerY": 2,
+        "portX": 1,
+        "portY": 1,
+        "delay": 0,
+        "bw": 100
+        },
+        {
+            "routerX":2,
+            "routerY": 3,
+            "portX": 2,
+            "portY": 1,
+            "delay": 0,
+            "bw": 100
+            },
+            {
+                "routerX":3,
+                "routerY": 4,
+                "portX": 2,
+                "portY": 1,
+                "delay": 0,
+                "bw": 100
+                }
+    ]
+}
