@@ -357,7 +357,8 @@ class DockerNode (Node):
             else:
                 cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         else:
-            cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
+            cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --init --net network20 --ip {}  --name {} -h {} {} ".format(providerIP, self.name, self.name, self.image)
+            # cmd = "docker create -it --privileged --cap-add=NET_ADMIN --cap-add=SYS_MODULE --cap-add=SYS_NICE --net=none --name {} -h {} {} ".format(self.name, self.name, self.image)
         
         info("{}\n".format(cmd))
         cmds.append(cmd)

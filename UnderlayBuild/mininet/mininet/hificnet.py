@@ -149,7 +149,7 @@ class Hificnet( Mininet ):
                   controller=LxcRemoteController, link=CloudLink, intf=TCIntf,
                   mapper=None,
                   build=True, xterms=False, cleanup=False, ipBase='10.10.0.10/16',
-                  adminIpBase='192.168.1.1/16',providerIpBase='20.20.0.10/16',
+                  adminIpBase='192.168.1.10/16',providerIpBase='20.20.0.10/16',
                   autoSetMacs=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, waitConnectionTimeout=5, 
                   jump=None, user="root", client_keys=None, master=None, pub_id=None,
@@ -978,7 +978,7 @@ class MininetWithControlNet( Mininet ):
     # We still need to figure out the right way to pass
     # in the control network location.
 
-    def configureRoutedControlNetwork( self, ip='192.168.1.1',
+    def configureRoutedControlNetwork( self, ip='192.168.1.10',
                                        prefixLen=16 ):
         """Configure a routed control network on controller and switches.
            For use with the user datapath only right now."""

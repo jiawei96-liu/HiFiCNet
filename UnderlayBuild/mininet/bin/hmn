@@ -545,7 +545,7 @@ class HificnetRunner( object ):
             #       '*** Using DockerNode, OVSSwitch, CloudLink\n' )
             host, switch, link = DockerNode, LxcOVSSwitch, CloudLink
 
-            adminIpBase='192.168.1.1/16'
+            adminIpBase='192.168.1.10/16'
             waitConnected=False
             build=False
             if not opts.placement_file_path:
