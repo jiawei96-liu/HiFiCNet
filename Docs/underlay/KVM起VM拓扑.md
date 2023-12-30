@@ -155,16 +155,21 @@ brctl show
 
 ## VM的创建，连接与删除
 
-1. 运行脚本，批量起虚拟机，注意设置合适的参数
+1. 运行脚本，构建宿主机网络环境
 
 ```
-python3 hificnet-vm-node-manage.py init
+python3 hificnet-vm-node-manage.py prepare
 ```
 
-2. 可以使用virsh console或者ssh远程连接虚拟机
+2. 运行脚本，批量起虚拟机，注意设置合适的参数
 
+```
+python3 hificnet-vm-node-manage.py create
+```
 
-3. 运行脚本，批量删除虚拟机
+3. 可以使用virsh console或者ssh远程连接虚拟机
+
+4. 运行脚本，批量删除虚拟机
 
 ```
 python3 hificnet-vm-node-manage.py clean
