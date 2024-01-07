@@ -12,10 +12,10 @@ import sys
 
 
 
-class OverlayCmd(cmd.Cmd):
-    prompt = '-OverLay> '  # 设置命令行提示符
+class UnderlayCmd(cmd.Cmd):
+    prompt = 'UnderLay> '  # 设置命令行提示符
     def __init__(self):
-        super(OverlayCmd, self).__init__()
+        super(UnderlayCmd, self).__init__()
         self.mysql_host = '172.16.50.7'
         self.mysql_user = 'root'
         self.mysql_password = 'sdn123456'
@@ -30,95 +30,72 @@ class OverlayCmd(cmd.Cmd):
         self.hosts.append(self.master)
         self.mapnodesnum = 4
         self.ssh = paramiko.SSHClient()
-        # self.overlaynets = self.GetOverlayNets()
-        # self.overlaysubnets = self.GetOverlaySubnets()
-        # self.overlayrouters = self.GetOverlayRouters()
-        # self.underlaynodesmap = self.GetUnderlayNodesMap()
-        # self.overlaynodes = self.GetOverlayNodes()
-    
+
     def do_help(self, arg):
-        command = ['init', 'clean', 'networks', 'subnets', 'routers', 'nodes', 'namespaces', 'routernamespaces', 'pingall']
+        command = ['init', 'clean']
         for i in command:
-            print("\t" + i)
+            print(i)
 
     def do_exit(self, arg):
         return True
 
     def do_init(self, arg):
-                # 自动添加主机密钥
+        # 自动添加主机密钥
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        print("---------Overlay Config vxadmin---------")
-        self.ssh.connect(hostname=self.controller, port=22, username='root', password='sdn123456')
-        self.ssh.exec_command("brctl addbr admin-br")
-        self.ssh.exec_command("ifconfig admin-br 192.168.1.10/16")
-        self.ssh.exec_command("tunctl -t admin")
-        self.ssh.exec_command("brctl addif admin-br admin")
-        self.ssh.exec_command("ifconfig admin 192.168.1.11/16")
-        self.ssh.exec_command("ip link set admin-br up")
-        self.ssh.exec_command("ip link set admin up")
-        self.ssh.exec_command("ip link add vxadmin type vxlan id 00 remote 172.16.50.6 local 172.16.50.7 dstport 4789")
-        self.ssh.exec_command("ip link set up vxadmin")
-        self.ssh.exec_command("brctl addif admin-br vxadmin")
-        self.ssh.exec_command("ip link set up admin-br")
-        self.ssh.exec_command('exit')
-        self.ssh.close()
-        self.ssh.connect(hostname=self.master, port=22, username='root', password='sdn123456')
-        self.ssh.exec_command("ip link add vxadmin type vxlan id 00 remote 172.16.50.7 local 172.16.50.6 dstport 4789")
-        self.ssh.exec_command("ip link set up vxadmin")
-        self.ssh.exec_command("brctl addif admin-br vxadmin")
-        self.ssh.exec_command("ip link set up admin-br")
+        print("---------Underlay Init-----------")
+        for host in self.hosts:
+            self.ssh.connect(hostname=host, port=22, username='root', password='sdn123456')
+            self.ssh.exec_command("netplan apply")
+            self.ssh.exec_command("sysctl net.ipv4.conf.all.forwarding=1")
+            self.ssh.exec_command("iptables --policy FORWARD ACCEPT")
+            self.ssh.exec_command("ulimit -n 196835")
+            self.ssh.exec_command("mkdir /var/run/netns")
+            self.ssh.exec_command('exit')
+            self.ssh.close()
         time.sleep(2)
         print("successfully!")
-        print("---------Overlay Config vxdata---------")
-        self.ssh.exec_command("ip link add vxdata type vxlan id 1 remote 172.16.50.7 local 172.16.50.6 dstport 4788")
-        self.ssh.exec_command("ip link set up vxdata")
-        self.ssh.exec_command("brctl addif intf6 vxdata")
-        self.ssh.exec_command("ip link set up intf6")
-        self.ssh.exec_command('exit')
-        self.ssh.close()
-        self.ssh.connect(hostname=self.controller, port=22, username='root', password='sdn123456')
-        self.ssh.exec_command("ip link add vxdata type vxlan id 1 remote 172.16.50.6 local 172.16.50.7 dstport 4788")
-        self.ssh.exec_command("brctl addbr data-br")
-        self.ssh.exec_command("ifconfig data-br 10.10.0.7/16")
-        self.ssh.exec_command("ip addr flush eno4")
-        self.ssh.exec_command("brctl addif data-br eno4")
-        self.ssh.exec_command("tunctl -t data")
-        self.ssh.exec_command("brctl addif data-br data")
-        self.ssh.exec_command("ifconfig data 10.10.0.2/16")
-        self.ssh.exec_command("ip link set data up")
-        self.ssh.exec_command("ip link set up data-br")
-        self.ssh.exec_command("ip link set up vxdata")
-        self.ssh.exec_command("brctl addif data-br vxdata")
-        self.ssh.exec_command('exit')
-        self.ssh.close()
-        time.sleep(2)
-        print("successfully!")
-        print("---------Overlay Config Compute Node---------")
+        print("---------Underlay Config Docker Network---------")
         hosts = self.workers[:]
         hosts.append(self.master)
         for host in hosts:
             self.ssh.connect(hostname=host, port=22, username='root', password='sdn123456')
-            # 执行命令
-            _, stdout, _ = self.ssh.exec_command("docker ps -a | grep -E 'ubuntu' | awk '{print $1}'")
-            print("host: " + host)
-            compute_nodes = []
-            for node in stdout:
-                print(node)
-                compute_nodes.append(node)
-            for node in compute_nodes:
-                print(node)
-                _, stdout, stderr = self.ssh.exec_command("docker exec -it " + node + " python3 /root/docker_configer_container_cmd.py")
-                print(stderr)
-                # 实时获取输出
-                for line in stdout:
-                    print(line.strip())
+            self.ssh.exec_command("ip addr flush $(ip addr | awk '/inet 20\./ {print $NF}')")
+            self.ssh.exec_command("docker network create  --subnet 20.20.0.0/16 --gateway 20.20.0.6 network20")
+            self.ssh.exec_command("brctl addif $(ip addr | awk '/inet 20\./ {print $NF}') eno3")
             self.ssh.exec_command('exit')
             self.ssh.close()
         time.sleep(2)
         print("successfully!")
 
     def do_clean(self, arg):
-        pass
+        # 自动添加主机密钥
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        print("---------Underlay Clean Host and Docker Network---------")
+        hosts = self.workers[:]
+        hosts.append(self.master)
+        print(hosts)
+        for host in hosts:
+            self.ssh.connect(hostname=host, port=22, username='root', password='sdn123456')
+            # 执行命令
+            _, stdout, _ = self.ssh.exec_command("docker ps -a | grep -E 'switch|ubuntu' | awk '{print $1}'")
+            for node in stdout:
+                print(node)
+                self.ssh.exec_command("docker rm -f " + node)
+            time.sleep(2)
+            self.ssh.exec_command("docker network rm network20")
+            self.ssh.exec_command('exit')
+            self.ssh.close()
+        print("---------Underlay Clean Network Interfaces---------")
+        for host in self.hosts:
+            self.ssh.connect(hostname=host, port=22, username='root', password='sdn123456')
+            _, stdout, _ = self.ssh.exec_command("ip link | grep -E 'admin|data|vNone|vx_|intf|veth' | tr -d ':' | tr '@' ' ' | awk '{print $2}'")
+            for intf in stdout:
+                print("clean " + host + "\'s " + intf, end='')
+                self.ssh.exec_command("ip link delete " + intf)
+            self.ssh.exec_command('exit')
+            self.ssh.close()
+        time.sleep(1)
+        print("successfully!")
 
     def do_add_command_arg(self, command, argname):
         arg = argname.replace('_', '-')
