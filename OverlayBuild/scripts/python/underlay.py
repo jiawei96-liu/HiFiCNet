@@ -79,9 +79,10 @@ class UnderlayCmd(cmd.Cmd):
             # 执行命令
             _, stdout, _ = self.ssh.exec_command("docker ps -a | grep -E 'switch|ubuntu' | awk '{print $1}'")
             for node in stdout:
-                print(node)
-                self.ssh.exec_command("docker rm -f " + node)
-            time.sleep(2)
+                if node.replace("\n", ""):
+                    print("clean node " + node.replace("\n", ""))
+                    self.ssh.exec_command("docker rm -f " + node)
+            time.sleep(5)
             self.ssh.exec_command("docker network rm network20")
             self.ssh.exec_command('exit')
             self.ssh.close()
